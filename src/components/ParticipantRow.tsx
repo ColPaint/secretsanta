@@ -1,5 +1,5 @@
 import { Gear, X } from "@phosphor-icons/react";
-import { Participant } from '../types';
+import { Multiplier, MULTIPLIERS, Participant } from '../types';
 import { useTranslation } from 'react-i18next';
 
 interface ParticipantRowProps {
@@ -7,6 +7,7 @@ interface ParticipantRowProps {
   participantIndex: number;
   isLast: boolean;
   onNameChange: (name: string) => void;
+  onMultiplierChange: (multiplier: Multiplier) => void;
   onOpenRules: () => void;
   onRemove: () => void;
 }
@@ -16,6 +17,7 @@ export function ParticipantRow({
   participantIndex,
   isLast,
   onNameChange,
+  onMultiplierChange,
   onOpenRules,
   onRemove,
 }: ParticipantRowProps) {
@@ -35,6 +37,17 @@ export function ParticipantRow({
 
       {!isLast && (
         <>
+          <select
+            value={participant.multiplier ?? 1}
+            onChange={(e) => onMultiplierChange(Number(e.target.value) as Multiplier)}
+            className="p-2 border rounded bg-white flex-shrink-0"
+            aria-label={t('participants.multiplier')}
+            title={t('participants.multiplier')}
+          >
+            {MULTIPLIERS.map(m => (
+              <option key={m} value={m}>x{m}</option>
+            ))}
+          </select>
           <button
             onClick={onOpenRules}
             className={`px-2 sm:px-3 py-2 rounded hover:opacity-80 flex-shrink-0 ${
@@ -60,4 +73,4 @@ export function ParticipantRow({
       )}
     </div>
   );
-} 
+}

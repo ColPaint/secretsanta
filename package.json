@@ -1,6 +1,7 @@
 {
   "name": "secretsanta",
   "private": true,
+  "type": "module",
   "packageManager": "yarn@4.5.1",
   "dependencies": {
     "@fontsource/cherry-swash": "^5.1.0",

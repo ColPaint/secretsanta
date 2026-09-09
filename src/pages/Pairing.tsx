@@ -1,16 +1,29 @@
 import "@fontsource/dancing-script/700.css";
 import { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { decryptText } from '../utils/crypto';
 import { PostCard } from '../components/PostCard';
 import { Trans, useTranslation } from 'react-i18next';
-import { MenuItem, SideMenu } from '../components/SideMenu';
-import { PageTransition } from '../components/PageTransition';
+import { MenuItem } from '../components/SideMenu';
 import { ArrowLeft, Info } from '@phosphor-icons/react';
 import { motion } from 'framer-motion';
 import CryptoJS from 'crypto-js';
 import { Layout } from "../components/Layout";
-import { ReceiverData } from "../types";
+import { ReceiverData, RecipientReveal } from "../types";
+
+function normalizeReceiverData(data: ReceiverData): {
+  recipients: RecipientReveal[];
+  budget?: { amount: number; currency: string };
+} {
+  if (data.recipients && data.recipients.length > 0) {
+    return { recipients: data.recipients, budget: data.budget };
+  }
+
+  return {
+    recipients: [{ name: data.name, hint: data.hint }],
+    budget: data.budget,
+  };
+}
 
 async function loadPairing(searchParams: URLSearchParams): Promise<[string, ReceiverData]> {
   // Legacy pairings, not generated anymore; remove after 2025-01-01
@@ -28,11 +41,9 @@ async function loadPairing(searchParams: URLSearchParams): Promise<[string, Rece
     const decrypted = await decryptText(to);
 
     try {
-      // Try to parse as JSON first (new format with hint)
       const data = JSON.parse(decrypted) as ReceiverData;
       return [from, data];
     } catch {
-      // If parsing fails, it's the old format (just the name)
       return [from, {name: decrypted, hint: undefined} as ReceiverData];
     }
   }
@@ -78,10 +89,14 @@ export function Pairing() {
     </MenuItem>
   ];
 
+  const normalized = assignment ? normalizeReceiverData(assignment[1]) : null;
+  const hints = normalized?.recipients.filter(r => r.hint) ?? [];
+  const showInfo = Boolean(instructions || hints.length > 0 || normalized?.budget);
+
   return (
     <Layout menuItems={menuItems}>
       <div>
-        {!loading && assignment && (
+        {!loading && assignment && normalized && (
           <motion.div
             initial={{ rotateZ: -360 * 1, scale: 0 }}
             animate={{ rotateZ: 0, scale: 1, opacity: 1 }}
@@ -96,20 +111,45 @@ export function Pairing() {
                 <Trans
                   i18nKey="pairing.assignment"
                   components={{
-                    name: <span className="font-semibold">{assignment![0]}</span>
+                    name: <span className="font-semibold">{assignment[0]}</span>
                   }}
                 />
               </p>
-              <div className="text-8xl font-bold text-center p-6 font-dancing-script">
-                {assignment[1].name}
+              <div className="space-y-8">
+                {normalized.recipients.map((recipient) => (
+                  <div key={recipient.name}>
+                    <div className="text-8xl font-bold text-center p-6 font-dancing-script">
+                      {recipient.name}
+                    </div>
+                    {recipient.coGifters && recipient.coGifters.length > 0 && (
+                      <p className="text-center text-gray-600">
+                        {t('pairing.coGifters', { names: recipient.coGifters.join(', ') })}
+                      </p>
+                    )}
+                  </div>
+                ))}
               </div>
-              {(instructions || assignment[1].hint) && (
+              {showInfo && (
                 <div className="mt-6 flex p-4 bg-gray-50 rounded-lg leading-6 text-gray-600 whitespace-pre-wrap">
                   <div className="mr-4">
                     <Info size={24}/>
                   </div>
                   <div className="space-y-2">
-                    {assignment[1].hint && <p>{assignment[1].hint}</p>}
+                    {hints.map((recipient) => (
+                      <p key={recipient.name}>
+                        {normalized.recipients.length > 1
+                          ? `${recipient.name}: ${recipient.hint}`
+                          : recipient.hint}
+                      </p>
+                    ))}
+                    {normalized.budget && (
+                      <p>
+                        {t('pairing.budget', {
+                          amount: normalized.budget.amount,
+                          currency: normalized.budget.currency,
+                        })}
+                      </p>
+                    )}
                     {instructions && <p>{instructions}</p>}
                   </div>
                 </div>

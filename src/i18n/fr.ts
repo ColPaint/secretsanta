@@ -15,7 +15,9 @@ export const fr: Translations = {
     invalidRuleFormat: "Format de règle invalide : {{rule}}",
     unknownParticipant: "Participant inconnu dans la règle : {{name}}",
     noValidReceivers: "Aucun receveur valide restant pour ce participant",
-    line: "Ligne {{number}}"
+    line: "Ligne {{number}}",
+    impossibleMultiplier: "Un multiplicateur est trop élevé pour le nombre de participants. Chaque personne ne peut tirer au plus un nom de moins qu'il n'y a de participants.",
+    invalidMultiplier: "Multiplicateur invalide (utilisez *2, *3 ou *4)"
   },
   home: {
     vanity: "Projet lancé en hiver 2015 par Maël",
@@ -33,7 +35,9 @@ export const fr: Translations = {
     assignment: "Bienvenue, <name/> ! Vous avez été sélectionné(e) pour offrir un cadeau à :",
     loading: "Chargement...",
     error: "Échec du décryptage du message. Le lien pourrait être invalide.",
-    startYourOwn: "Créez Votre Secret Santa !"
+    startYourOwn: "Créez Votre Secret Santa !",
+    coGifters: "Également en train de leur offrir un cadeau : {{names}}",
+    budget: "Budget : {{amount}} {{currency}}"
   },
   participants: {
     title: "Participants",
@@ -47,6 +51,7 @@ export const fr: Translations = {
     rulesCount_other: "{{count}} règles définies",
     switchToFormView: "Passer à la vue formulaire",
     switchToTextView: "Passer à la vue texte",
+    multiplier: "Multiplicateur"
   },
   rules: {
     title: "Règles pour {{name}}",
@@ -75,6 +80,10 @@ export const fr: Translations = {
     title: "Paramètres",
     instructions: "Instructions Supplémentaires",
     instructionsPlaceholder: "Par exemple le budget, la date, le lieu...",
-    instructionsHelp: "Elles seront affichées à tous les participants sur leur page d'attribution. Restez concis: cette fonction allonge la taille des liens."
+    instructionsHelp: "Elles seront affichées à tous les participants sur leur page d'attribution. Restez concis: cette fonction allonge la taille des liens.",
+    budget: "Budget",
+    budgetHelp: "Il sera affiché à tous les participants sur leur page d'attribution.",
+    budgetAmount: "Montant",
+    currency: "Devise"
   }
 };

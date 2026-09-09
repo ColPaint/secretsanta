@@ -1,4 +1,4 @@
-import { Participant, Rule } from '../types';
+import { Multiplier, Participant, Rule } from '../types';
 import { checkRules } from './generatePairs';
 
 export interface ParseSuccess {
@@ -25,15 +25,19 @@ export function formatParticipantText(participants: Record<string, Participant>)
       .filter(r => r.type === 'mustNot')
       .map(r => `!${participants[r.targetParticipantId]?.name ?? ''}`);
 
+    const multiplierPart = participant.multiplier && participant.multiplier > 1
+      ? [`*${participant.multiplier}`]
+      : [];
+
     const hintPart = participant.hint
       ? [`(${participant.hint})`]
       : [];
 
-    return `${[participant.name, ...hintPart, ...mustRules, ...mustNotRules].join(' ')}\n`;
+    return `${[participant.name, ...multiplierPart, ...hintPart, ...mustRules, ...mustNotRules].join(' ')}\n`;
   }).join('');
 }
 
-const PAREN = /[!=(]/;
+const PAREN = /[*!=(]/;
 
 export function parseParticipantsText(input: string, existingParticipants?: Record<string, Participant>): ParseResult {
   const lines = input.split('\n').map(line => line.trim());
@@ -44,6 +48,7 @@ export function parseParticipantsText(input: string, existingParticipants?: Reco
     line: number,
     name: string,
     hint?: string,
+    multiplier?: Multiplier,
     extra: string[],
   }[] = [];
 
@@ -57,8 +62,19 @@ export function parseParticipantsText(input: string, existingParticipants?: Reco
       ? line.slice(0, splitIndex).trim()
       : line.trim();
 
+    let multiplier: Multiplier | undefined;
+    if (typeof splitIndex === 'number' && line[splitIndex] === '*') {
+      const match = line.slice(splitIndex).match(/^\*([1-4])\s*/);
+      if (!match) {
+        return { ok: false, line: i + 1, key: 'errors.invalidMultiplier' };
+      }
+      const value = Number(match[1]) as Multiplier;
+      multiplier = value === 1 ? undefined : value;
+      splitIndex = splitIndex + match[0].length;
+    }
+
     let hint: string | undefined;
-    if (typeof splitIndex === 'number' && line[splitIndex] === '(') {
+    if (typeof splitIndex === 'number' && splitIndex < line.length && line[splitIndex] === '(') {
       let depth = 1;
       let j = splitIndex + 1;
 
@@ -72,7 +88,7 @@ export function parseParticipantsText(input: string, existingParticipants?: Reco
       splitIndex = j;
     }
 
-    const remainingPart = line.slice(splitIndex);
+    const remainingPart = typeof splitIndex === 'number' ? line.slice(splitIndex) : '';
     const parts = remainingPart
       .trim()
       .split(/([!=])/)
@@ -86,12 +102,13 @@ export function parseParticipantsText(input: string, existingParticipants?: Reco
       line: i + 1, 
       name: name.trim(), 
       hint: hint?.trim(),
+      multiplier,
       extra: parts.filter(Boolean)
     });
   }
 
   // First pass: create participants and build name-to-id mapping
-  for (const {line, name, hint} of parsedLines) {
+  for (const {line, name, hint, multiplier} of parsedLines) {
     if (nameToId[name]) {
       return { 
         ok: false, 
@@ -103,7 +120,7 @@ export function parseParticipantsText(input: string, existingParticipants?: Reco
 
     const id = existingParticipants?.[name]?.id ?? crypto.randomUUID();
     nameToId[name] = id;
-    result[id] = { id, name, hint, rules: [] };
+    result[id] = { id, name, hint, rules: [], multiplier };
   }
 
   // Second pass: process rules
@@ -146,4 +163,4 @@ export function parseParticipantsText(input: string, existingParticipants?: Reco
   }
 
   return { ok: true, participants: result };
-} 
+}

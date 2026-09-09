@@ -3,34 +3,55 @@ import { DownloadSimple } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 import { CopyButton } from "./CopyButton";
 import { generateAssignmentLink, generateCSV } from "../utils/links";
-import { Participant } from "../types";
+import { BudgetConfig, Participant, RecipientReveal } from "../types";
 import { GeneratedPairs, generateGenerationHash } from "../utils/generatePairs";
 
 interface SecretSantaLinksProps {
   assignments: GeneratedPairs;
   instructions?: string;
+  budget: BudgetConfig;
   participants: Record<string, Participant>;
   onGeneratePairs: () => void;
 }
 
-export function SecretSantaLinks({ assignments, instructions, participants, onGeneratePairs }: SecretSantaLinksProps) {
+export function SecretSantaLinks({ assignments, instructions, budget, participants, onGeneratePairs }: SecretSantaLinksProps) {
   const { t } = useTranslation();
 
   const currentHash = generateGenerationHash(participants);
   const hasChanged = currentHash !== assignments.hash;
 
-  const adjustedPairings = assignments.pairings.map(({giver, receiver}): [string, string, string | undefined] => [
-    participants[giver.id]?.name ?? giver.name,
-    participants[receiver.id]?.name ?? receiver.name,
-    participants[receiver.id]?.hint,
-  ]);
+  const resolveName = (id: string, fallback: string) => participants[id]?.name ?? fallback;
 
-  adjustedPairings.sort((a, b) => {
-    return a[0].localeCompare(b[0]);
+  const giverIds = [...new Set(assignments.pairings.map(({giver}) => giver.id))];
+  giverIds.sort((a, b) => {
+    const nameA = resolveName(a, assignments.pairings.find(p => p.giver.id === a)?.giver.name ?? '');
+    const nameB = resolveName(b, assignments.pairings.find(p => p.giver.id === b)?.giver.name ?? '');
+    return nameA.localeCompare(nameB);
   });
 
+  const recipientsForGiver = (giverId: string): RecipientReveal[] => {
+    return assignments.pairings
+      .filter(({giver}) => giver.id === giverId)
+      .map(({receiver}) => {
+        const coGifters = assignments.pairings
+          .filter(p => p.receiver.id === receiver.id && p.giver.id !== giverId)
+          .map(p => resolveName(p.giver.id, p.giver.name));
+        return {
+          name: resolveName(receiver.id, receiver.name),
+          hint: participants[receiver.id]?.hint,
+          coGifters: coGifters.length > 0 ? coGifters : undefined,
+        };
+      });
+  };
+
+  const csvRows: [string, string][] = assignments.pairings.map(({giver, receiver}) => [
+    resolveName(giver.id, giver.name),
+    resolveName(receiver.id, receiver.name),
+  ]);
+  csvRows.sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]));
+
   const handleExportCSV = () => {
-    const csvContent = generateCSV(adjustedPairings.map(([giver, receiver]) => [giver, receiver]));
+    const csvContent = generateCSV(csvRows);
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
 
@@ -70,19 +91,26 @@ export function SecretSantaLinks({ assignments, instructions, participants, onGe
         </button>
       </div>
       <div className="grid grid-cols-[minmax(100px,auto)_1fr] gap-3">
-        {adjustedPairings.map(([giver, receiver, hint]) => (
-          <React.Fragment key={giver}>
-            <span className="font-medium self-center">
-              {giver}:
-            </span>
-            <CopyButton
-              textToCopy={() => generateAssignmentLink(giver, receiver, hint, instructions)}
-              className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center justify-center gap-2"
-            >
-              {t('links.copySecretLink')}
-            </CopyButton>
-          </React.Fragment>
-        ))}
+        {giverIds.map(giverId => {
+          const giverName = resolveName(
+            giverId,
+            assignments.pairings.find(p => p.giver.id === giverId)?.giver.name ?? ''
+          );
+          const recipients = recipientsForGiver(giverId);
+          return (
+            <React.Fragment key={giverId}>
+              <span className="font-medium self-center">
+                {giverName}:
+              </span>
+              <CopyButton
+                textToCopy={() => generateAssignmentLink(giverName, recipients, instructions, budget)}
+                className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center justify-center gap-2"
+              >
+                {t('links.copySecretLink')}
+              </CopyButton>
+            </React.Fragment>
+          );
+        })}
       </div>
     </div>
   </>;

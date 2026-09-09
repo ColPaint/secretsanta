@@ -1,15 +1,25 @@
 import { encryptText } from "./crypto";
-import { ReceiverData } from "../types";
+import { BudgetConfig, ReceiverData, RecipientReveal } from "../types";
 
-export async function generateAssignmentLink(giver: string, receiver: string, receiverHint?: string, instructions?: string) {
+export async function generateAssignmentLink(
+  giver: string,
+  recipients: RecipientReveal[],
+  instructions?: string,
+  budget?: BudgetConfig,
+) {
   const baseUrl = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '')}`;
-  
-  // If there's a hint, encrypt a JSON object
-  const dataToEncrypt = receiverHint
-    ? JSON.stringify({ name: receiver, hint: receiverHint } as ReceiverData)
-    : receiver;
-    
-  const encryptedReceiver = await encryptText(dataToEncrypt);
+
+  const dataToEncrypt: ReceiverData = {
+    name: recipients[0]?.name ?? '',
+    hint: recipients[0]?.hint,
+    recipients,
+  };
+
+  if (budget?.amount != null) {
+    dataToEncrypt.budget = { amount: budget.amount, currency: budget.currency };
+  }
+
+  const encryptedReceiver = await encryptText(JSON.stringify(dataToEncrypt));
   const params = new URLSearchParams({
     from: giver,
     to: encryptedReceiver,
@@ -27,4 +37,4 @@ export function generateCSV(assignments: [string, string][]) {
     .map(([giver, receiver]) => `${giver}\t${receiver}`)
     .join('\n');
   return `Giver\tReceiver\n${csvContent}`;
-} 
+}

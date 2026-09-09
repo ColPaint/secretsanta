@@ -13,7 +13,9 @@ export const en = {
     invalidRuleFormat: "Invalid rule format: {{rule}}",
     unknownParticipant: "Unknown participant in rule: {{name}}",
     noValidReceivers: "No valid receivers left for this participant",
-    line: "Line {{number}}"
+    line: "Line {{number}}",
+    impossibleMultiplier: "A multiplier is too high for the number of participants. Each person can draw at most one fewer names than there are participants.",
+    invalidMultiplier: "Invalid multiplier (use *2, *3, or *4)"
   },
   home: {
     vanity: "Project started in winter 2015 by Maël",
@@ -31,7 +33,9 @@ export const en = {
     assignment: "Welcome, <name/>! You have been picked to get a gift for:",
     loading: "Loading...",
     error: "Failed to decrypt the message. The link might be invalid.",
-    startYourOwn: "Start a Secret Santa!"
+    startYourOwn: "Start a Secret Santa!",
+    coGifters: "Also buying a gift for them: {{names}}",
+    budget: "Budget: {{amount}} {{currency}}"
   },
   participants: {
     title: "Participants",
@@ -44,7 +48,8 @@ export const en = {
     rulesCount_one: "{{count}} rule set",
     rulesCount_other: "{{count}} rules set",
     switchToFormView: "Switch to form view",
-    switchToTextView: "Switch to text view"
+    switchToTextView: "Switch to text view",
+    multiplier: "Multiplier"
   },
   rules: {
     title: "Rules for {{name}}",
@@ -73,6 +78,10 @@ export const en = {
     title: "Settings",
     instructions: "Additional Instructions",
     instructionsPlaceholder: "e.g., budget, date, location...",
-    instructionsHelp: "They will be shown to all participants on their assignment page. Keep it short: it increases the length of the links."
+    instructionsHelp: "They will be shown to all participants on their assignment page. Keep it short: it increases the length of the links.",
+    budget: "Budget",
+    budgetHelp: "Shown to all participants on their assignment page.",
+    budgetAmount: "Amount",
+    currency: "Currency"
   },
 }; 

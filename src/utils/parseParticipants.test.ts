@@ -136,6 +136,35 @@ describe('parseParticipantsText', () => {
     const alice = Object.values(result.participants).find(p => p.name === 'Alice');
     expect(alice?.id).toBe('existing-alice-id');
   });
+
+  it('should parse multipliers after the name', () => {
+    const input = `
+      Alice *2 (likes cats) !Bob
+      Bob *3
+      Charlie
+    `;
+
+    const result = parseParticipantsText(input);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const alice = Object.values(result.participants).find(p => p.name === 'Alice');
+    const bob = Object.values(result.participants).find(p => p.name === 'Bob');
+    const charlie = Object.values(result.participants).find(p => p.name === 'Charlie');
+
+    expect(alice?.multiplier).toBe(2);
+    expect(alice?.hint).toBe('likes cats');
+    expect(alice?.rules).toHaveLength(1);
+    expect(bob?.multiplier).toBe(3);
+    expect(charlie?.multiplier).toBeUndefined();
+  });
+
+  it('should reject invalid multipliers', () => {
+    const result = parseParticipantsText('Alice *5\nBob\n');
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.key).toBe('errors.invalidMultiplier');
+  });
 });
 
 describe('formatParticipantText', () => {
@@ -167,6 +196,18 @@ describe('formatParticipantText', () => {
       'Alice (likes cats) =Bob !Charlie\n' +
       'Bob\n' +
       'Charlie\n'
+    );
+  });
+
+  it('should format multipliers greater than 1', () => {
+    const participants: Record<string, Participant> = {
+      'id1': { id: 'id1', name: 'Alice', rules: [], multiplier: 2 },
+      'id2': { id: 'id2', name: 'Bob', rules: [] },
+    };
+
+    expect(formatParticipantText(participants)).toBe(
+      'Alice *2\n' +
+      'Bob\n'
     );
   });
 }); 

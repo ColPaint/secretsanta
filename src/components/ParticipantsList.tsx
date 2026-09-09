@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ArrowsClockwise, List, TextT } from "@phosphor-icons/react";
-import { Participant } from '../types';
+import { Multiplier, Participant } from '../types';
 import { useTranslation } from 'react-i18next';
 import { ParticipantRow } from './ParticipantRow';
 import { ParticipantsTextView } from './ParticipantsTextView';
@@ -30,6 +30,13 @@ export function ParticipantsList({
     onChangeParticipants(produce(participants, draft => {
       draft[id] ??= {id, name, rules: []};
       draft[id].name = name;
+    }));
+  };
+
+  const updateMultiplier = (id: string, multiplier: Multiplier) => {
+    onChangeParticipants(produce(participants, draft => {
+      if (!draft[id]) return;
+      draft[id].multiplier = multiplier;
     }));
   };
 
@@ -65,6 +72,7 @@ export function ParticipantsList({
             participantIndex={index}
             isLast={index === Object.keys(participants).length}
             onNameChange={(name) => updateParticipant(participant.id, name)}
+            onMultiplierChange={(multiplier) => updateMultiplier(participant.id, multiplier)}
             onOpenRules={() => onOpenRules(participant.id)}
             onRemove={() => removeParticipant(participant.id)}
           />

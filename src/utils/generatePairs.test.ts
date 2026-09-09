@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
-import { GeneratedPairs, generatePairs } from './generatePairs';
+import { GeneratedPairs, generatePairs, getMultiplier, validateMultipliers } from './generatePairs';
 import { Participant, Rule } from '../types';
 import { parseParticipantsText, ParseSuccess } from './parseParticipants';
 
@@ -77,24 +77,32 @@ describe('generatePairs', () => {
         }
 
         // Properties that must hold for valid pairings:
-        expect(result.pairings).toHaveLength(Object.keys(participants).length);
+        const expectedEdges = Object.values(participants).reduce(
+          (sum, p) => sum + getMultiplier(p),
+          0
+        );
+        expect(result.pairings).toHaveLength(expectedEdges);
+
+        for (const id of Object.keys(participants)) {
+          const m = getMultiplier(participants[id]);
+          expect(result.pairings.filter(({giver}) => giver.id === id)).toHaveLength(m);
+          expect(result.pairings.filter(({receiver}) => receiver.id === id)).toHaveLength(m);
+        }
+
+        const edges = new Set(result.pairings.map(({giver, receiver}) => `${giver.id}->${receiver.id}`));
+        expect(edges.size).toBe(result.pairings.length);
         
-        const givers = new Set(result.pairings.map(({giver}) => giver.id));
-        const receivers = new Set(result.pairings.map(({receiver}) => receiver.id));
-        
-        // Everyone gives exactly once
-        expect(givers.size).toBe(Object.keys(participants).length);
-        // Everyone receives exactly once
-        expect(receivers.size).toBe(Object.keys(participants).length);
-        
-        // All MUST rules are respected
-        result.pairings.forEach(({giver, receiver}) => {
-          const mustRules = participants[giver.id].rules.filter(r => r.type === 'must');
-          
+        // All MUST rules are respected (target is among the giver's receivers)
+        for (const [id, participant] of Object.entries(participants)) {
+          const mustRules = participant.rules.filter(r => r.type === 'must');
+          if (mustRules.length === 0) continue;
+          const receivers = result.pairings
+            .filter(({giver}) => giver.id === id)
+            .map(({receiver}) => receiver.id);
           mustRules.forEach(rule => {
-            expect(receiver.id).toBe(rule.targetParticipantId);
+            expect(receivers).toContain(rule.targetParticipantId);
           });
-        });
+        }
 
         // All MUST NOT rules are respected
         result.pairings.forEach(({giver, receiver}) => {
@@ -252,16 +260,19 @@ describe('generatePairs', () => {
       expect(generationResult).not.toBeNull();
       const {pairings} = generationResult as GeneratedPairs;
 
-      // Verify each participant gives and receives exactly once
-      const givers = new Set(pairings.map(p => p.giver.id));
-      const receivers = new Set(pairings.map(p => p.receiver.id));
-      expect(givers.size).toBe(Object.keys(parseOk.participants).length);
-      expect(receivers.size).toBe(Object.keys(parseOk.participants).length);
+      for (const id of Object.keys(parseOk.participants)) {
+        const m = parseOk.participants[id].multiplier ?? 1;
+        expect(pairings.filter(p => p.giver.id === id)).toHaveLength(m);
+        expect(pairings.filter(p => p.receiver.id === id)).toHaveLength(m);
+      }
 
       // Verify no self-assignments
       for (const {giver, receiver} of pairings) {
         expect(giver.id).not.toBe(receiver.id);
       }
+
+      const edges = new Set(pairings.map(({giver, receiver}) => `${giver.id}->${receiver.id}`));
+      expect(edges.size).toBe(pairings.length);
 
       // Verify all MUST NOT rules are respected
       for (const {giver, receiver} of pairings) {
@@ -274,14 +285,64 @@ describe('generatePairs', () => {
       }
 
       // Verify all MUST rules are respected
-      for (const {giver, receiver} of pairings) {
-        const participant = parseOk.participants[giver.id];
+      for (const id of Object.keys(parseOk.participants)) {
+        const participant = parseOk.participants[id];
         const mustRules = participant.rules.filter(r => r.type === 'must');
+        const receivers = pairings.filter(p => p.giver.id === id).map(p => p.receiver.id);
 
         for (const rule of mustRules) {
-          expect(receiver.id).toBe(rule.targetParticipantId);
+          expect(receivers).toContain(rule.targetParticipantId);
         }
       }
     }
+  });
+
+  it('should honor multipliers for give and receive counts', () => {
+    const participants: Record<string, Participant> = {
+      A: { id: 'A', name: 'A', rules: [], multiplier: 2 },
+      B: { id: 'B', name: 'B', rules: [] },
+      C: { id: 'C', name: 'C', rules: [] },
+    };
+
+    const result = generatePairs(participants);
+    expect(result).not.toBeNull();
+    expect(result!.pairings).toHaveLength(4);
+
+    const giveCount = (id: string) => result!.pairings.filter(p => p.giver.id === id).length;
+    const receiveCount = (id: string) => result!.pairings.filter(p => p.receiver.id === id).length;
+    expect(giveCount('A')).toBe(2);
+    expect(receiveCount('A')).toBe(2);
+    expect(giveCount('B')).toBe(1);
+    expect(receiveCount('B')).toBe(1);
+    expect(giveCount('C')).toBe(1);
+    expect(receiveCount('C')).toBe(1);
+
+    const aReceivers = result!.pairings.filter(p => p.giver.id === 'A').map(p => p.receiver.id);
+    expect(new Set(aReceivers).size).toBe(2);
+    expect(aReceivers).not.toContain('A');
+  });
+
+  it('should include MUST targets among a multiplied giver\'s receivers', () => {
+    const participants: Record<string, Participant> = {
+      A: { id: 'A', name: 'A', rules: [{ type: 'must', targetParticipantId: 'B' }], multiplier: 2 },
+      B: { id: 'B', name: 'B', rules: [] },
+      C: { id: 'C', name: 'C', rules: [] },
+    };
+
+    const result = generatePairs(participants);
+    expect(result).not.toBeNull();
+    const aReceivers = result!.pairings.filter(p => p.giver.id === 'A').map(p => p.receiver.id);
+    expect(aReceivers).toContain('B');
+    expect(aReceivers).toHaveLength(2);
+  });
+
+  it('should reject multipliers greater than n-1', () => {
+    const participants: Record<string, Participant> = {
+      A: { id: 'A', name: 'A', rules: [], multiplier: 2 },
+      B: { id: 'B', name: 'B', rules: [] },
+    };
+
+    expect(validateMultipliers(participants)).toBe('errors.impossibleMultiplier');
+    expect(generatePairs(participants)).toBeNull();
   });
 }); 

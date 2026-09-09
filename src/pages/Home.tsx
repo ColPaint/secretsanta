@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { RulesModal } from '../components/RulesModal';
-import { GeneratedPairs, generatePairs } from '../utils/generatePairs';
+import { GeneratedPairs, generatePairs, validateMultipliers } from '../utils/generatePairs';
 import { Accordion } from '../components/Accordion';
 import { AccordionContainer } from '../components/AccordionContainer';
 import { ParticipantsList } from '../components/ParticipantsList';
 import { ParticipantsTextView } from '../components/ParticipantsTextView';
 import { SecretSantaLinks } from '../components/SecretSantaLinks';
-import { Participant, Rule } from '../types';
+import { BudgetConfig, Participant, Rule } from '../types';
 import { Link } from 'react-router-dom';
 import { PostCard } from '../components/PostCard';
 import { Trans, useTranslation } from 'react-i18next';
@@ -84,18 +84,27 @@ export function Home() {
   const [participants, setParticipants] = useLocalStorage<Record<string, Participant>>('secretSantaParticipants', {}, migrateParticipants);
   const [assignments, setAssignments] = useLocalStorage<GeneratedPairs | null>('secretSantaAssignments', null, migrateAssignments);
   const [instructions, setInstructions] = useLocalStorage<string>('secretSantaInstructions', '');
+  const [budget, setBudget] = useLocalStorage<BudgetConfig>('secretSantaBudget', { amount: null, currency: 'USD' });
 
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
   const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
   const [openSection, setOpenSection] = useState<'participants' | 'links' | 'settings'>('participants');
 
   const handleGeneratePairs = () => {
+    if (Object.keys(participants).length < 2) {
+      alert(t('errors.needMoreParticipants'));
+      return;
+    }
+
+    const multiplierError = validateMultipliers(participants);
+    if (multiplierError) {
+      alert(t(multiplierError));
+      return;
+    }
+
     const assignments = generatePairs(participants);
     if (assignments === null) {
-      alert(Object.keys(participants).length < 2 
-        ? t('errors.needMoreParticipants')
-        : t('errors.invalidPairs')
-      );
+      alert(t('errors.invalidPairs'));
       return;
     }
 
@@ -185,6 +194,8 @@ export function Home() {
               <Settings
                 instructions={instructions}
                 onChangeInstructions={setInstructions}
+                budget={budget}
+                onChangeBudget={setBudget}
               />
             </Accordion>
 
@@ -197,6 +208,7 @@ export function Home() {
                 <SecretSantaLinks
                   assignments={assignments}
                   instructions={instructions}
+                  budget={budget}
                   participants={participants}
                   onGeneratePairs={handleGeneratePairs}
                 />

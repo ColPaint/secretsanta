@@ -115,19 +115,30 @@ export function Pairing() {
                   }}
                 />
               </p>
-              <div className="space-y-8">
-                {normalized.recipients.map((recipient) => (
-                  <div key={recipient.name}>
-                    <div className="text-8xl font-bold text-center p-6 font-dancing-script">
-                      {recipient.name}
+              <div className="space-y-4">
+                {normalized.recipients.map((recipient) => {
+                  const hasCoGifters = Boolean(recipient.coGifters && recipient.coGifters.length > 0);
+                  const useCard = normalized.recipients.length > 1 || hasCoGifters;
+
+                  return (
+                    <div
+                      key={recipient.name}
+                      className={useCard ? 'rounded-xl border border-gray-200 bg-gray-50 px-4 py-2' : undefined}
+                    >
+                      <div className={`${useCard && normalized.recipients.length > 1 ? 'text-6xl' : 'text-8xl'} font-bold text-center p-6 font-dancing-script`}>
+                        {recipient.name}
+                      </div>
+                      {hasCoGifters && (
+                        <p className="mt-1 mb-4 pt-3 border-t border-gray-200 text-center text-sm text-gray-600">
+                          {t('pairing.coGifters', {
+                            recipient: recipient.name,
+                            names: recipient.coGifters!.join(', '),
+                          })}
+                        </p>
+                      )}
                     </div>
-                    {recipient.coGifters && recipient.coGifters.length > 0 && (
-                      <p className="text-center text-gray-600">
-                        {t('pairing.coGifters', { names: recipient.coGifters.join(', ') })}
-                      </p>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               {showInfo && (
                 <div className="mt-6 flex p-4 bg-gray-50 rounded-lg leading-6 text-gray-600 whitespace-pre-wrap">

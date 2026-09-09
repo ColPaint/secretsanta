@@ -162,6 +162,19 @@ export function Home() {
         <div className="lg:order-none lg:flex-[5_5_0%]">
           <AccordionContainer>
             <Accordion
+              title={t('settings.title')}
+              isOpen={openSection === 'settings'}
+              onToggle={() => setOpenSection('settings')}
+            >
+              <Settings
+                instructions={instructions}
+                onChangeInstructions={setInstructions}
+                budget={budget}
+                onChangeBudget={setBudget}
+              />
+            </Accordion>
+
+            <Accordion
               title={t('participants.title')}
               isOpen={openSection === 'participants'}
               onToggle={() => setOpenSection('participants')}
@@ -184,19 +197,6 @@ export function Home() {
                   onGeneratePairs={handleGeneratePairs}
                 />
               )}
-            </Accordion>
-
-            <Accordion
-              title={t('settings.title')}
-              isOpen={openSection === 'settings'}
-              onToggle={() => setOpenSection('settings')}
-            >
-              <Settings
-                instructions={instructions}
-                onChangeInstructions={setInstructions}
-                budget={budget}
-                onChangeBudget={setBudget}
-              />
             </Accordion>
 
             {assignments && (

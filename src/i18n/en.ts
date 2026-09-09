@@ -34,8 +34,8 @@ export const en = {
     loading: "Loading...",
     error: "Failed to decrypt the message. The link might be invalid.",
     startYourOwn: "Start a Secret Santa!",
-    coGifters: "Also buying a gift for them: {{names}}",
-    budget: "Budget: {{amount}} {{currency}}"
+    coGifters: "Also buying for {{recipient}}: {{names}}",
+    budget: "Budget per person: {{amount}} {{currency}}"
   },
   participants: {
     title: "Participants",

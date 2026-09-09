@@ -36,8 +36,8 @@ export const fr: Translations = {
     loading: "Chargement...",
     error: "Échec du décryptage du message. Le lien pourrait être invalide.",
     startYourOwn: "Créez Votre Secret Santa !",
-    coGifters: "Également en train de leur offrir un cadeau : {{names}}",
-    budget: "Budget : {{amount}} {{currency}}"
+    coGifters: "Également pour {{recipient}} : {{names}}",
+    budget: "Budget par personne : {{amount}} {{currency}}"
   },
   participants: {
     title: "Participants",
